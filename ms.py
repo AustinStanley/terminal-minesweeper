@@ -14,6 +14,8 @@ class Grid(object):
         self.grid = [[Square() for _ in range(12)] for _ in range(21)]
         self.populate_mines()
         self.compute_sums()
+        self.unrevealed = 12 * 21
+        self.win_condition_met = False
 
     def populate_mines(self):
         mines = 37
@@ -31,6 +33,10 @@ class Grid(object):
             return
 
         self.grid[x][y].revealed = True
+        self.unrevealed -= 1
+
+        if self.unrevealed == 37:
+            win_condition_met = True
 
         if self.grid[x][y].mine:
             self.mine_revealed = True
@@ -47,53 +53,88 @@ class Grid(object):
     def unmark(self, x, y):
         self.grid[x][y].marked = False
 
+    def toggle_mark(self, x, y):
+        if self.grid[x][y].marked:
+            self.unmark(x, y)
+        else:
+            self.mark(x, y)
+
     def neighbors(self, x, y):
             return [(x - 1, y), (x - 1, y - 1), (x - 1, y + 1),
                     (x, y - 1), (x, y + 1),
                     (x + 1, y), (x + 1, y - 1), (x + 1, y + 1)]
 
-    def draw(self):
+    def draw(self, win):
         for i, row in enumerate(self.grid):
-            print('{}\t'.format(i + 1), end='')
-            for square in row:
+            for j, square in enumerate(row):
+                x_pos = j + 2 * j
                 if square.marked:
-                    print('+\t', end='')
+                    win.addstr(i, x_pos, '+')
                 elif square.revealed:
-                    print('{}\t'.format(square.sum if not square.mine else 'x'), end='')
+                    win.addstr(i, x_pos, '{}'.format(square.sum if not square.mine else 'x'))
                 else:
-                    print('-\t', end='')
-            print('\n')
-        print(' \tA\tB\tC\tD\tE\tF\tG\tH\tI\tJ\tK\tL')
+                    win.addstr(i, x_pos, '-')
             
 def main():
+    # curses setup
+    stdscr = curses.initscr()
+    curses.noecho()
+    curses.cbreak()
+    stdscr.keypad(True)
+
     grid = Grid()
-    cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
+    grid.draw(stdscr)
+    stdscr.move(0, 0)
 
     while True:
-        grid.draw()
+        cmd = stdscr.getkey()
+        y, x = stdscr.getyx()
 
-        if grid.mine_revealed:
-            print('You lose!')
+        if cmd == 'q':
+            curses.nocbreak()
+            stdscr.keypad(False)
+            curses.echo()
+            curses.endwin()
             break
+        elif cmd == 'KEY_RIGHT':
+            if x < 33:
+                stdscr.move(y, x + 3)
+        elif cmd == 'KEY_LEFT':
+            if x > 0:
+                stdscr.move(y, x - 3)
+        elif cmd == 'KEY_UP':
+            if y > 0:
+                stdscr.move(y - 1, x)
+        elif cmd == 'KEY_DOWN':
+            if y < 20:
+                stdscr.move(y + 1, x)
+        elif cmd == 'z':
+            grid.reveal(y, x // 3)
+            stdscr.erase()
+            grid.draw(stdscr)
 
-        cmd = input('>>> ')
-        
-        if cmd.lower() == 'q':
-            break
-        else:
-            try:
-                cmd = (cmd[0].lower(), cols.index(cmd[1].upper()), int(cmd[2:]) - 1)
+            if grid.mine_revealed:
+                stdscr.addstr(10, 12, 'YOU LOSE!', curses.A_REVERSE)
+                stdscr.getch()
+                stdscr.erase()
+                grid = Grid()
+                grid.draw(stdscr)
 
-                if cmd[0] == 'm':
-                    grid.mark(cmd[2], cmd[1])
-                elif cmd[0] == 'u':
-                    grid.unmark(cmd[2], cmd[1])
-                elif cmd[0] == 'r':
-                    grid.reveal(cmd[2], cmd[1])
-                else:
-                    print('Invalid command')
-            except IndexError:
-                print('Invalid command')
+            if grid.win_condition_met:
+                stdscr.addstr(10, 12, 'YOU WIN!', curses.A_REVERSE)
+                stdscr.getch()
+                stdscr.erase()
+                grid = Grid()
+                grid.draw(stdscr)
+
+            stdscr.move(y, x)
+        elif cmd == 'x':
+            grid.toggle_mark(y, x // 3)
+            stdscr.erase()
+            grid.draw(stdscr)
+            stdscr.move(y, x)
+
+        stdscr.refresh()
 
 if __name__ == '__main__':
     main()
