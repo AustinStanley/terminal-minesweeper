@@ -115,17 +115,21 @@ def main():
 
             if grid.mine_revealed:
                 stdscr.addstr(10, 12, 'YOU LOSE!', curses.A_REVERSE)
+                curses.curs_set(0)
                 stdscr.getch()
                 stdscr.erase()
                 grid = Grid()
                 grid.draw(stdscr)
+                curses.curs_set(1)
 
             if grid.win_condition_met:
                 stdscr.addstr(10, 12, 'YOU WIN!', curses.A_REVERSE)
+                curses.curse_set(0)
                 stdscr.getch()
                 stdscr.erase()
                 grid = Grid()
                 grid.draw(stdscr)
+                curses.curs_set(1)
 
             stdscr.move(y, x)
         elif cmd == 'x':
