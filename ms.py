@@ -9,19 +9,27 @@ class Square(object):
         self.revealed = False
 
 class Grid(object):
-    def __init__(self):
+    DIMS = [(9, 9), (12, 21)]
+
+    def __init__(self, difficulty=1):
+        self.difficulty = difficulty
         self.mine_revealed = False
-        self.grid = [[Square() for _ in range(12)] for _ in range(21)]
+        self.grid = [[Square() for _ in range(Grid.DIMS[difficulty][0])] 
+                               for _ in range(Grid.DIMS[difficulty][1])]
         self.populate_mines()
         self.compute_sums()
-        self.unrevealed = 12 * 21
+        self.unrevealed = Grid.DIMS[difficulty][0] * Grid.DIMS[difficulty][1]
         self.win_condition_met = False
 
     def populate_mines(self):
+        # TODO: make this base # of mines on difficulty
         mines = 37
         while mines:
-            self.grid[random.randrange(21)][random.randrange(12)].mine = 1
-            mines -= 1
+            x = random.randrange(21)
+            y = random.randrange(12)
+            if not self.grid[x][y].mine:
+                self.grid[x][y].mine = 1
+                mines -= 1
 
     def compute_sums(self):
         for i, row in enumerate(self.grid):
@@ -71,7 +79,7 @@ class Grid(object):
                 if square.marked:
                     win.addstr(i, x_pos, '+')
                 elif square.revealed:
-                    win.addstr(i, x_pos, '{}'.format(square.sum if not square.mine else 'x'))
+                    win.addstr(i, x_pos, '{}'.format((square.sum if square.sum else ' ') if not square.mine else 'x'))
                 else:
                     win.addstr(i, x_pos, '-')
             
